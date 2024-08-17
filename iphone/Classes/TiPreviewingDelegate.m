@@ -56,7 +56,7 @@
       return nil;
     }
 
-    [self setListViewEvent:[self receiveListViewEventFromIndexPath:[tableView indexPathForRowAtPoint:location]]];
+    [self setListViewEvent:[self receiveListViewEventFromIndexPath:[tableView indexPathForRowAtPoint:location] tapPoint:location]];
     [[self previewContext] fireEvent:@"peek" withObject:[self listViewEvent]];
   } else {
     [[self previewContext] fireEvent:@"peek" withObject:@{ @"preview" : [[self previewContext] preview] }];
@@ -130,7 +130,7 @@
   return nil;
 }
 
-- (NSDictionary *)receiveListViewEventFromIndexPath:(NSIndexPath *)indexPath
+- (NSDictionary *)receiveListViewEventFromIndexPath:(NSIndexPath *)indexPath tapPoint:(CGPoint)tapPoint
 {
   NSDictionary *event = @{
     @"sectionIndex" : NUMINTEGER(indexPath.section),
@@ -141,11 +141,26 @@
 #ifdef USE_TI_UILISTVIEW
   if ([[[self previewContext] sourceView] isKindOfClass:[TiUIListViewProxy class]]) {
     TiUIListViewProxy *listProxy = (TiUIListViewProxy *)[[self previewContext] sourceView];
+    TiUIListView *listView = (TiUIListView *)listProxy.view;
     TiUIListSectionProxy *theSection = [listProxy sectionForIndex:indexPath.section];
 
+    TiUIListItem *cell = (TiUIListItem *)[listView.tableView cellForRowAtIndexPath:indexPath];
     NSDictionary *theItem = [theSection itemAtIndex:indexPath.row];
     NSMutableDictionary *eventObject = [[NSMutableDictionary alloc] initWithDictionary:event];
 
+    CGPoint convertedPoint = [listView.tableView convertPoint:tapPoint toView:cell.contentView];
+    // if searchController is active, tableView.contentOffset.y = -44
+    // else tableView.contentOffset.y = 0
+    // if ([searchController isActive]) {
+    // convertedPoint.y = convertedPoint.y + tableView.contentOffset.y;
+    //}
+    if (cell.templateStyle == TiUIListItemTemplateStyleCustom) {
+      UIView *contentView = cell.contentView;
+      TiViewProxy *tapViewProxy = FindViewProxyWithBindIdContainingPoint(contentView, convertedPoint);
+      if (tapViewProxy != nil) {
+        [eventObject setObject:[tapViewProxy valueForKey:@"bindId"] forKey:@"bindId"];
+      }
+    }
     id propertiesValue = [theItem objectForKey:@"properties"];
     NSDictionary *properties = ([propertiesValue isKindOfClass:[NSDictionary class]]) ? propertiesValue : nil;
     id itemId = [properties objectForKey:@"itemId"];
