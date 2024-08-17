@@ -9,7 +9,9 @@
 #import "TiUIListViewProxy.h"
 #import <TitaniumKit/TiUIView.h>
 
-@interface TiUIListView : TiUIView <UITableViewDelegate, UITableViewDataSource, UITableViewDataSourcePrefetching, UIScrollViewDelegate, UIGestureRecognizerDelegate, UISearchBarDelegate, UISearchResultsUpdating, UISearchControllerDelegate, TiScrolling, TiProxyObserver, TiUIListViewDelegateView, UITableViewDragDelegate, UITableViewDropDelegate>
+ViewProxy *FindViewProxyWithBindIdContainingPoint(UIView *view, CGPoint point);
+
+@interface TiUIListView : TiUIView <UITableViewDelegate, UITableViewDataSource, UITableViewDataSourcePrefetching, UIScrollViewDelegate, UIGestureRecognizerDelegate, UISearchBarDelegate, UISearchResultsUpdating, UISearchControllerDelegate, TiScrolling, TiProxyObserver, TiUIListViewDelegateView>
 
 #pragma mark - Private APIs
 
