@@ -50,6 +50,8 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.webkit.URLUtil;
 import android.widget.MediaController.MediaPlayerControl;
+import java.util.HashMap; // phobeous
+import org.appcelerator.titanium.util.TiUIHelper; // phobeous
 
 /**
  * Displays a video file. The VideoView class
@@ -341,8 +343,10 @@ public class TiVideoView8 extends SurfaceView implements MediaPlayerControl
 	private void setDataSource()
 	{
 		try {
+			mUri = TiUIHelper.getRedirectUri(mUri);
 			// TIMOB-27493: disable caching, which would otherwise introduce a delay.
 			Map<String, String> headers = new HashMap<>();
+			headers.put("User-Agent", System.getProperty("http.agent"));
 			headers.put("Cache-Control", "no-cache");
 
 			mMediaPlayer.setDataSource(TiApplication.getAppRootOrCurrentActivity(), mUri, headers);

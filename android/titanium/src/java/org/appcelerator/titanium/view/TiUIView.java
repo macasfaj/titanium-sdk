@@ -1670,6 +1670,20 @@ public abstract class TiUIView implements KrollProxyListener, OnFocusChangeListe
 		} else {
 			data.put(TiC.EVENT_PROPERTY_SIZE, (double) 0);
 		}
+
+		// phobeous
+		if (dictToCopy.containsKey("globalX")) {
+			data.put("globalX", dictToCopy.get("globalX"));
+		} else {
+			data.put("globalX", (double) 0);
+		}
+		if (dictToCopy.containsKey("globalY")) {
+			data.put("globalY", dictToCopy.get("globalY"));
+		} else {
+			data.put("globalY", (double) 0);
+		}
+		// end phobeous
+
 		data.put(TiC.EVENT_PROPERTY_SOURCE, proxy);
 		return data;
 	}
@@ -1814,8 +1828,13 @@ public abstract class TiUIView implements KrollProxyListener, OnFocusChangeListe
 					this.touchSlop = ViewConfiguration.get(view.getContext()).getScaledTouchSlop();
 				}
 
-				// Store position where touch was released for the onClick() listener.
-				if (event.getAction() == MotionEvent.ACTION_UP) {
+				// 2019.08.27 - phobeous@iNZDR : updated this block from 5.X to 8.1.X
+				if (event.getAction() == MotionEvent.ACTION_DOWN) {
+					Log.d(TAG, "phobeous@iNZDR -> eventX: " + ((double) event.getRawX())
+								   + ", eventY: " + ((double) event.getRawY()));
+					lastUpEvent.put("globalX", (double) event.getRawX());
+					lastUpEvent.put("globalY", (double) event.getRawY());
+				} else if (event.getAction() == MotionEvent.ACTION_UP) { // Store position where touch was released for the onClick() listener.
 					TiDimension xDimension = new TiDimension((double) event.getX(), TiDimension.TYPE_LEFT);
 					TiDimension yDimension = new TiDimension((double) event.getY(), TiDimension.TYPE_TOP);
 					lastUpEvent.put(TiC.EVENT_PROPERTY_X, xDimension.getAsDefault(view));
