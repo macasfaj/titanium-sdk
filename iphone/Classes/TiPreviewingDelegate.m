@@ -7,6 +7,7 @@
 #ifdef USE_TI_UIIOSPREVIEWCONTEXT
 
 #import "TiPreviewingDelegate.h"
+#import "TiUIListItem.h"
 #import "TiUIListView.h"
 #import "TiUIListViewProxy.h"
 #import "TiUIScrollView.h"
