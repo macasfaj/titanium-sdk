@@ -2072,6 +2072,14 @@ MAKE_SYSTEM_PROP(VIDEO_REPEAT_MODE_ONE, VideoRepeatModeOne);
       [self sendPickerError:MediaModuleErrorUnknown];
       return;
     }
+    media = [[[TiBlob alloc] initWithFile:[fileURL path]] autorelease];
+    if ([media mimeType] == nil) {
+      [media setMimeType:@"video/mpeg" type:TiBlobTypeFile];
+    }
+    if (saveToRoll) {
+      NSString *tempFilePath = [mediaURL path];
+      UISaveVideoAtPathToSavedPhotosAlbum(tempFilePath, nil, nil, NULL);
+    }
   } else {
     UIImage *editedImage = [editingInfo objectForKey:UIImagePickerControllerEditedImage];
     if ((mediaURL != nil) && (editedImage == nil)) {
