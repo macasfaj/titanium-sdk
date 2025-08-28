@@ -24,6 +24,7 @@
 @property (nonatomic, readonly) TiUIListViewProxy *listViewProxy;
 @property (nonatomic, copy, readwrite) NSString *searchString;
 @property (nonatomic, copy, readwrite) NSString *searchedString;
+@property (nonatomic, assign) CGFloat lastContentOffset;
 @end
 
 TiViewProxy *FindViewProxyWithBindIdContainingPoint(UIView *view, CGPoint point)
@@ -102,8 +103,8 @@ TiViewProxy *FindViewProxyWithBindIdContainingPoint(UIView *view, CGPoint point)
   BOOL isSearched;
   UIView *dimmingView;
   BOOL isSearchBarInNavigation;
-  int lastVisibleItem;
-  int lastVisibleSection;
+  NSInteger lastVisibleItem;
+  NSInteger lastVisibleSection;
   BOOL forceUpdates;
 }
 
@@ -913,7 +914,6 @@ TiViewProxy *FindViewProxyWithBindIdContainingPoint(UIView *view, CGPoint point)
   [[self tableView] setBounces:![TiUtils boolValue:value def:NO]];
 }
 
-#if IS_SDK_IOS_15
 - (void)setSectionHeaderTopPadding_:(id)value
 {
   if (![TiUtils isIOSVersionOrGreater:@"15.0"]) {
@@ -922,7 +922,6 @@ TiViewProxy *FindViewProxyWithBindIdContainingPoint(UIView *view, CGPoint point)
 
   self.tableView.sectionHeaderTopPadding = [TiUtils floatValue:value def:UITableViewAutomaticDimension];
 }
-#endif
 
 - (void)setAllowsMultipleSelectionDuringEditing_:(id)value
 {
@@ -2034,6 +2033,15 @@ TiViewProxy *FindViewProxyWithBindIdContainingPoint(UIView *view, CGPoint point)
         TiUIListSectionProxy *section;
         CGFloat topSpacing = scrollView.contentOffset.y + scrollView.adjustedContentInset.top;
 
+        NSString *direction = @"unknown";
+
+        if (self.lastContentOffset > scrollView.contentOffset.y) {
+          direction = @"down";
+        } else if (self.lastContentOffset < scrollView.contentOffset.y) {
+          direction = @"up";
+        }
+        self.lastContentOffset = scrollView.contentOffset.y;
+
         if ([indexPaths count] > 0) {
           NSIndexPath *indexPath = [self pathForSearchPath:[indexPaths objectAtIndex:0]];
           NSUInteger visibleItemCount = [indexPaths count];
@@ -2045,6 +2053,7 @@ TiViewProxy *FindViewProxyWithBindIdContainingPoint(UIView *view, CGPoint point)
           [eventArgs setValue:section forKey:@"firstVisibleSection"];
           [eventArgs setValue:[section itemAtIndex:[indexPath row]] forKey:@"firstVisibleItem"];
           [eventArgs setValue:NUMINTEGER(topSpacing) forKey:@"top"];
+          [eventArgs setValue:direction forKey:@"direction"];
 
           if (lastVisibleItem != [indexPath row] || lastVisibleSection != [indexPath section] || forceUpdates) {
             // only log if the item changes or forced
@@ -2061,6 +2070,7 @@ TiViewProxy *FindViewProxyWithBindIdContainingPoint(UIView *view, CGPoint point)
           [eventArgs setValue:section forKey:@"firstVisibleSection"];
           [eventArgs setValue:NUMINTEGER(-1) forKey:@"firstVisibleItem"];
           [eventArgs setValue:NUMINTEGER(topSpacing) forKey:@"top"];
+          [eventArgs setValue:direction forKey:@"direction"];
         }
       });
     }
@@ -2133,7 +2143,7 @@ TiViewProxy *FindViewProxyWithBindIdContainingPoint(UIView *view, CGPoint point)
 - (void)scrollViewWillEndDragging:(UIScrollView *)scrollView withVelocity:(CGPoint)velocity targetContentOffset:(inout CGPoint *)targetContentOffset
 {
   if ([[self proxy] _hasListeners:@"scrolling"]) {
-    NSString *direction = nil;
+    NSString *direction = @"unknown";
 
     if (velocity.y > 0) {
       direction = @"up";
