@@ -77,7 +77,7 @@ TiViewProxy *FindViewProxyWithBindIdContainingPoint(UIView *view, CGPoint point)
   NSMutableArray<NSNumber *> *filteredIndices;
 
   UIView *_pullViewWrapper;
-  CGFloat pullThreshhold;
+  CGFloat pullThreshold;
 
   BOOL pullActive;
   CGPoint tapPoint;
@@ -369,7 +369,7 @@ TiViewProxy *FindViewProxyWithBindIdContainingPoint(UIView *view, CGPoint point)
           [[self tableView] setTableFooterView:footerView];
           [((TiUIListViewProxy *)[self proxy]) contentsWillChange];
         } else if (sender == _pullViewProxy) {
-          pullThreshhold = ([_pullViewProxy view].frame.origin.y - _pullViewWrapper.bounds.size.height);
+          pullThreshold = ([_pullViewProxy view].frame.origin.y - _pullViewWrapper.bounds.size.height);
         }
       },
       NO);
@@ -2014,10 +2014,10 @@ TiViewProxy *FindViewProxyWithBindIdContainingPoint(UIView *view, CGPoint point)
 
   if ([self.proxy _hasListeners:@"pull"]) {
     if ((_pullViewProxy != nil) && ([scrollView isTracking])) {
-      if ((scrollView.contentOffset.y < pullThreshhold) && !pullActive) {
+      if ((scrollView.contentOffset.y < pullThreshold) && !pullActive) {
         pullActive = YES;
         [self.proxy fireEvent:@"pull" withObject:[NSDictionary dictionaryWithObjectsAndKeys:NUMBOOL(pullActive), @"active", nil] withSource:self.proxy propagate:NO reportSuccess:NO errorCode:0 message:nil];
-      } else if ((scrollView.contentOffset.y > pullThreshhold) && (pullActive)) {
+      } else if ((scrollView.contentOffset.y > pullThreshold) && (pullActive)) {
         pullActive = NO;
         [self.proxy fireEvent:@"pull" withObject:[NSDictionary dictionaryWithObjectsAndKeys:NUMBOOL(pullActive), @"active", nil] withSource:self.proxy propagate:NO reportSuccess:NO errorCode:0 message:nil];
       }
