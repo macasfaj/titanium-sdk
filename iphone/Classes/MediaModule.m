@@ -139,7 +139,7 @@ static NSDictionary *TI_filterableItemProperties;
                                                         MPMediaItemPropertyGenrePersistentID, @"genrePersistentID",
                                                         MPMediaItemPropertyComposerPersistentID, @"composerPersistentID",
                                                         MPMediaItemPropertyIsCloudItem, @"isCloudItem",
-                                                        [TiUtils isIOSVersionOrGreater:@"9.2"] ? MPMediaItemPropertyHasProtectedAsset : NO, @"hasProtectedAsset",
+                                                        MPMediaItemPropertyHasProtectedAsset, @"hasProtectedAsset",
                                                         MPMediaItemPropertyPodcastTitle, @"podcastTitle",
                                                         MPMediaItemPropertyPodcastPersistentID, @"podcastPersistentID",
                                                         nil];
@@ -452,11 +452,11 @@ MAKE_SYSTEM_PROP(VIDEO_REPEAT_MODE_ONE, VideoRepeatModeOne);
 - (void)_listenerAdded:(NSString *)type count:(int)count
 {
   if (count == 1 && [type isEqualToString:@"routechange"]) {
-    WARN_IF_BACKGROUND_THREAD_OBJ; // NSNotificationCenter is not threadsafe
+    WARN_IF_BACKGROUND_THREAD_OBJ; // NSNotificationCenter is not thread-safe
     [[TiMediaAudioSession sharedSession] startAudioSession]; // Have to start a session to get a listener
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(audioRouteChanged:) name:kTiMediaAudioSessionRouteChange object:[TiMediaAudioSession sharedSession]];
   } else if (count == 1 && [type isEqualToString:@"volume"]) {
-    WARN_IF_BACKGROUND_THREAD_OBJ; // NSNotificationCenter is not threadsafe!
+    WARN_IF_BACKGROUND_THREAD_OBJ; // NSNotificationCenter is not thread-safe!
     [[TiMediaAudioSession sharedSession] startAudioSession]; // Have to start a session to get a listener
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(audioVolumeChanged:) name:kTiMediaAudioSessionVolumeChange object:[TiMediaAudioSession sharedSession]];
   }
@@ -465,11 +465,11 @@ MAKE_SYSTEM_PROP(VIDEO_REPEAT_MODE_ONE, VideoRepeatModeOne);
 - (void)_listenerRemoved:(NSString *)type count:(int)count
 {
   if (count == 0 && [type isEqualToString:@"routechange"]) {
-    WARN_IF_BACKGROUND_THREAD_OBJ; // NSNotificationCenter is not threadsafe!
+    WARN_IF_BACKGROUND_THREAD_OBJ; // NSNotificationCenter is not thread-safe!
     [[TiMediaAudioSession sharedSession] stopAudioSession];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:kTiMediaAudioSessionRouteChange object:[TiMediaAudioSession sharedSession]];
   } else if (count == 0 && [type isEqualToString:@"volume"]) {
-    WARN_IF_BACKGROUND_THREAD_OBJ; // NSNotificationCenter is not threadsafe!
+    WARN_IF_BACKGROUND_THREAD_OBJ; // NSNotificationCenter is not thread-safe!
     [[TiMediaAudioSession sharedSession] stopAudioSession];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:kTiMediaAudioSessionVolumeChange object:[TiMediaAudioSession sharedSession]];
   }
@@ -987,7 +987,7 @@ MAKE_SYSTEM_PROP(VIDEO_REPEAT_MODE_ONE, VideoRepeatModeOne);
 #endif
 
 #if defined(USE_TI_MEDIAREQUESTCAMERAPERMISSIONS)
-// request camera access. for >= IOS7
+// request camera access
 - (void)requestCameraPermissions:(id)arg
 {
   ENSURE_SINGLE_ARG(arg, KrollCallback);
@@ -1165,8 +1165,7 @@ MAKE_SYSTEM_PROP(VIDEO_REPEAT_MODE_ONE, VideoRepeatModeOne);
 #ifdef USE_TI_MEDIAHASMUSICLIBRARYPERMISSIONS
 - (NSNumber *)hasMusicLibraryPermissions:(id)unused
 {
-  // Will return true for iOS < 9.3, since authorization was introduced in iOS 9.3
-  return NUMBOOL(![TiUtils isIOSVersionOrGreater:@"9.3"] || [MPMediaLibrary authorizationStatus] == MPMediaLibraryAuthorizationStatusAuthorized);
+  return NUMBOOL([MPMediaLibrary authorizationStatus] == MPMediaLibraryAuthorizationStatusAuthorized);
 }
 #endif
 
@@ -1182,26 +1181,18 @@ MAKE_SYSTEM_PROP(VIDEO_REPEAT_MODE_ONE, VideoRepeatModeOne);
   ENSURE_SINGLE_ARG(args, KrollCallback);
   KrollCallback *callback = args;
 
-  if ([TiUtils isIOSVersionOrGreater:@"9.3"]) {
-    TiThreadPerformOnMainThread(
-        ^() {
-          [MPMediaLibrary requestAuthorization:^(MPMediaLibraryAuthorizationStatus status) {
-            BOOL granted = status == MPMediaLibraryAuthorizationStatusAuthorized;
-            KrollEvent *invocationEvent = [[KrollEvent alloc] initWithCallback:callback
-                                                                   eventObject:[TiUtils dictionaryWithCode:(granted ? 0 : 1) message:nil]
-                                                                    thisObject:self];
-            [[callback context] enqueue:invocationEvent];
-            RELEASE_TO_NIL(invocationEvent);
-          }];
-        },
-        NO);
-  } else {
-    NSDictionary *propertiesDict = [TiUtils dictionaryWithCode:0 message:nil];
-    NSArray *invocationArray = [[NSArray alloc] initWithObjects:&propertiesDict count:1];
-    [callback call:invocationArray thisObject:self];
-    [invocationArray release];
-    return;
-  }
+  TiThreadPerformOnMainThread(
+      ^() {
+        [MPMediaLibrary requestAuthorization:^(MPMediaLibraryAuthorizationStatus status) {
+          BOOL granted = status == MPMediaLibraryAuthorizationStatusAuthorized;
+          KrollEvent *invocationEvent = [[KrollEvent alloc] initWithCallback:callback
+                                                                 eventObject:[TiUtils dictionaryWithCode:(granted ? 0 : 1) message:nil]
+                                                                  thisObject:self];
+          [[callback context] enqueue:invocationEvent];
+          RELEASE_TO_NIL(invocationEvent);
+        }];
+      },
+      NO);
 }
 #endif
 
@@ -1212,7 +1203,7 @@ MAKE_SYSTEM_PROP(VIDEO_REPEAT_MODE_ONE, VideoRepeatModeOne);
 
   NSString *musicPermission = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"NSAppleMusicUsageDescription"];
 
-  if ([TiUtils isIOSVersionOrGreater:@"9.3"] && [MPMediaLibrary authorizationStatus] != MPMediaLibraryAuthorizationStatusAuthorized) {
+  if ([MPMediaLibrary authorizationStatus] != MPMediaLibraryAuthorizationStatusAuthorized) {
     NSLog(@"[ERROR] It looks like you are accessing the music-library without sufficient permissions. Please use the Ti.Media.hasMusicLibraryPermissions() method to validate the permissions and only call this method if permissions are granted.");
   }
 
@@ -2002,7 +1993,7 @@ MAKE_SYSTEM_PROP(VIDEO_REPEAT_MODE_ONE, VideoRepeatModeOne);
   }
 
   BOOL isVideo = [mediaType isEqualToString:(NSString *)kUTTypeMovie];
-  BOOL isLivePhoto = ([TiUtils isIOSVersionOrGreater:@"9.1"] && [mediaType isEqualToString:(NSString *)kUTTypeLivePhoto]);
+  BOOL isLivePhoto = [mediaType isEqualToString:(NSString *)kUTTypeLivePhoto];
 
   NSURL *mediaURL = [editingInfo objectForKey:UIImagePickerControllerMediaURL];
 
